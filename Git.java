@@ -4,9 +4,7 @@
  * Thank you to .
 * Majestic King Dylan
 */
-import java.util.*;
 import java.util.zip.DeflaterOutputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -15,23 +13,24 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
 
 public class Git {
 
     public static final boolean COMPRESS = false;
 
-    public Git () {
+    public Git() {
         initGit();
     }
-    public void initGit() { //makes repo
+
+    public void initGit() { // makes repo
         File gitDir = new File("git");
-        File objDir = new File( "./git/objects/");
-        File indexFile = new File( "./git/index");
+        File objDir = new File("./git/objects/");
+        File indexFile = new File("./git/index");
         // checks if repo alr exists
         if (!gitDir.exists()) {
             gitDir.mkdir();
@@ -47,8 +46,80 @@ public class Git {
             }
         }
     }
-    //filePath is the name/path of the file that will be 'Blobbed'
-    public void addBlob(String filePath) throws NoSuchAlgorithmException { 
+
+    public void addDir(String dirPath) throws NoSuchAlgorithmException {
+        File dir = new File(dirPath);
+        if (!dir.exists() || !dir.isDirectory()) {
+            throw new Error("This is not an existing directory");
+        }
+        for (File file : dir.listFiles()) {
+            if (file.isDirectory()) {
+                addDir(file.getPath());
+            } else {
+                addBlob(file.getPath());
+            }
+        }
+    }
+
+    public void addToTree(String treePath, String sha, String name, boolean isBlob) {
+        final var dir = "./git/objects/" + treePath;
+
+        if (!Files.exists(Path.of(dir))) {
+            throw new Error("The tree path does not exist");
+        }
+
+        try {
+            var treeFile = new File(dir + "/tree");
+            if (dir.equals("./git/objects/")) {
+                treeFile = new File("./git/index");
+            }
+            if (!treeFile.exists()) {
+                treeFile.createNewFile();
+            }
+
+            final var br = new BufferedReader(new FileReader(treeFile));
+            final var bw = new BufferedWriter(new FileWriter(treeFile, true));
+
+            final var lineItem = (isBlob ? "blob " : "tree ") + sha + " " + name;
+
+            if (br.readLine() == null) {
+                bw.write(lineItem);
+            } else {
+                bw.newLine();
+                bw.write(lineItem);
+            }
+
+            br.close();
+            bw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (treePath.equals("")) {
+            return;
+        }
+        addToTree(upDir(treePath), shaFile("./git/objects/" + treePath + "/tree"),
+                lastDir(treePath), false);
+    }
+
+    String upDir(String dir) {
+        final var split = dir.split("/");
+        StringBuffer combined = new StringBuffer();
+        for (int i = 0; i < split.length - 1; i++) {
+            combined.append(split[i]);
+            if (i != split.length - 2) {
+                combined.append("/");
+            }
+        }
+        return combined.toString();
+    }
+
+    String lastDir(String dir) {
+        final var split = dir.split("/");
+        return split[split.length - 1];
+    }
+
+    // filePath is the name/path of the file that will be 'Blobbed'
+    public void addBlob(String filePath) throws NoSuchAlgorithmException {
         File file = new File(filePath);
         if (!file.exists()) {
             throw new NullPointerException();
@@ -56,11 +127,21 @@ public class Git {
         if (COMPRESS) {
             file = compress(file);
         }
-        //checks if file is stored already
-        File storingFile = new File ("./git/objects/" + genSha1(filePath));
-        //put actual file in obj directory is it isnt already there
+        // checks if file is stored already
+        File storingFile = new File("./git/objects/" + shaFile(filePath));
+        if (!upDir(filePath).equals("")) {
+            storingFile = new File("./git/objects/" + upDir(filePath) + "/" + shaFile(filePath));
+        }
+        try {
+            Files.createDirectories(Paths.get(storingFile.getParent()));
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new Error("Could not create directories");
+        }
+        // put actual file in obj directory is it isnt already there
         if (!storingFile.exists()) {
-            try{
+            try {
+                // todo tree path make exists
                 storingFile.createNewFile();
                 BufferedWriter bw = new BufferedWriter(new FileWriter(storingFile, true));
                 BufferedReader br = new BufferedReader(new FileReader(filePath));
@@ -70,39 +151,16 @@ public class Git {
                 }
                 br.close();
                 bw.close();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-            //adding to index
-            try {
-                //checking if alr in index file
-                boolean inIndex = false;
-                String index = genSha1(filePath) + " " + file.getName();
-                BufferedReader br = new BufferedReader(new FileReader("./git/index"));
-                while(br.ready()) {
-                    if (index.equals(br.readLine())) {
-                        inIndex = true;
-                    }
-                }
-                br.close();
-                //adding if not in index file
-                if (!inIndex) {
-                    BufferedWriter bw = new BufferedWriter(new FileWriter("./git/index", true));
-                    bw.write(index);
-                    bw.newLine();
-                    bw.close();
-                }
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+        addToTree(upDir(filePath), shaFile(filePath), Paths.get(filePath).getFileName().toString(), true);
+    }
 
-    public File compress (File file) {
+    public File compress(File file) {
         try {
-            File compressedFile = File.createTempFile("compress",null);
+            File compressedFile = File.createTempFile("compress", null);
             FileInputStream input = new FileInputStream(file);
             DeflaterOutputStream output = new DeflaterOutputStream(new FileOutputStream(compressedFile));
             int data = input.read();
@@ -113,41 +171,39 @@ public class Git {
             input.close();
             output.close();
             return compressedFile;
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return file;
     }
 
-    //deletes git folder (everything basically)
-    public void resetGit () {
-        File fodder = new File ("git/");
+    // deletes git folder (everything basically)
+    public static void resetGit() {
+        File fodder = new File("git/");
         if (fodder.exists()) {
             deleteDir(fodder);
             fodder.delete();
         }
     }
 
-    //deletes directories recursively (gets rid of the subfiles too)
-    public void deleteDir(File dir) {
+    // deletes directories recursively (gets rid of the subfiles too)
+    public static void deleteDir(File dir) {
         if (!dir.isDirectory()) {
-            if (dir.isFile()) 
+            if (dir.isFile())
                 dir.delete();
-            else 
+            else
                 throw new IllegalArgumentException();
         }
         if (dir.exists()) {
-            for (File subfile:dir.listFiles()) {
+            for (File subfile : dir.listFiles()) {
                 deleteDir(subfile);
             }
-            dir.delete(); 
+            dir.delete();
         }
     }
 
-
-    //returns Sha1 hash (hexadecimal index) for input file
-    //copied off internet (forgot where exactly)
+    // returns Sha1 hash (hexadecimal index) for input file
+    // copied off internet (forgot where exactly)
     public static String genSha1(String input) throws NoSuchAlgorithmException {
         MessageDigest mDigest = MessageDigest.getInstance("SHA1");
         byte[] result = mDigest.digest(input.getBytes());
@@ -156,5 +212,24 @@ public class Git {
             sb.append(Integer.toString((result[i] & 0xff) + 0x100, 16).substring(1));
         }
         return sb.toString();
+    }
+
+    public static String shaFile(String path) {
+        // used bufferedReader to read file
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(path));
+            StringBuffer sb = new StringBuffer();
+            String line = br.readLine();
+            while (line != null) {
+                sb.append(line);
+                sb.append("\n");
+                line = br.readLine();
+            }
+            br.close();
+            return genSha1(sb.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new Error("File not found");
+        }
     }
 }
