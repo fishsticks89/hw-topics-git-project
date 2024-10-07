@@ -4,6 +4,7 @@ import java.io.FileWriter;
 import java.io.BufferedReader;
 import java.util.ArrayList;
 
+import util.Print;
 import util.Terminate;
 
 import java.io.BufferedWriter;
@@ -95,7 +96,7 @@ public class DirectoryFile {
     public int lineWithNameAndType(String name, boolean isBlob) {
         var lines = getLines();
         for (int i = 0; i < lines.size(); i++) {
-            if (lines.get(i).name == name && lines.get(i).isTree == !isBlob) {
+            if (lines.get(i).name.equals(name) && lines.get(i).isTree == !isBlob) {
                 return i;
             }
         }

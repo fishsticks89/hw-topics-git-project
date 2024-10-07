@@ -40,6 +40,6 @@ public class Tester {
 
         // check hash
         Git.addBlob("testerjunk2.txt");
-        Git.addBlob("basd/eep.txt");
+        Git.addDir("basd");
     }
 }
