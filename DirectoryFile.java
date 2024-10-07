@@ -95,7 +95,7 @@ public class DirectoryFile {
     public int lineWithNameAndType(String name, boolean isBlob) {
         var lines = getLines();
         for (int i = 0; i < lines.size(); i++) {
-            if (lines.get(i).name == name && lines.get(i).isTree == !isBlob) {
+            if (lines.get(i).name.equals(name) && lines.get(i).isTree == !isBlob) {
                 return i;
             }
         }

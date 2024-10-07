@@ -14,9 +14,6 @@ import java.security.NoSuchAlgorithmException;
 import util.Terminate;
 
 public class Git {
-    private static DirectoryFile getIndex() {
-        return new DirectoryFile("./git/index");
-    }
 
     // Adds a Blob in `objects` to the `index` file
     private static void addBlobToIndex(String path, String sha) {
@@ -117,22 +114,24 @@ public class Git {
         registerTree(parentTree.getFile(), DirUtil.up(treePath));
     }
 
-    // Adds a file to Git
-    public static void addBlob(String filePath) {
-        File inFile = new File(filePath);
+    public static void addBlob (String filePath){
+        addBlob(new File(filePath));
+    }
 
+    // Adds a file to Git
+    public static void addBlob(File inFile) {
         if (!inFile.isFile())
             throw new Error("Blob does not exist");
 
-        File storingFile = new File("./git/objects/" + Sha.shaFile(filePath));
+        File storingFile = new File("./git/objects/" + Sha.shaFile(inFile.getPath()));
         storingFile.delete();
 
-        registerBlob(filePath, storingFile.getName());
+        registerBlob(inFile.getPath(), storingFile.getName());
 
         try {
             storingFile.createNewFile();
             BufferedWriter bw = new BufferedWriter(new FileWriter(storingFile, true));
-            BufferedReader br = new BufferedReader(new FileReader(filePath));
+            BufferedReader br = new BufferedReader(new FileReader(inFile));
             while (br.ready()) {
                 bw.write(br.readLine());
                 bw.newLine();
@@ -172,6 +171,15 @@ public class Git {
             objDir.mkdir();
         }
         getIndex();
+        getHEAD();
+    }
+
+    private static DirectoryFile getIndex() {
+        return new DirectoryFile("./git/index");
+    }
+
+    private static DirectoryFile getHEAD(){
+        return new DirectoryFile("./git/HEAD");
     }
 
     // Deletes `git` folder

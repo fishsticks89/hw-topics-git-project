@@ -39,7 +39,6 @@ public class Tester {
         assertRepoCreated();
 
         // check hash
-        Git.addBlob("testerjunk2.txt");
-        Git.addBlob("basd/eep.txt");
+        Git.addDir("basd");
     }
 }
