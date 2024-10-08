@@ -10,10 +10,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.security.NoSuchAlgorithmException;
-
+import java.nio.file.Files;
+import java.io.IOException;
 import util.Terminate;
 
-public class Git {
+public class Git /**implements GitInterface*/{
 
     // Adds a Blob in `objects` to the `index` file
     private static void addBlobToIndex(String path, String sha) {
@@ -114,6 +115,8 @@ public class Git {
         registerTree(parentTree.getFile(), DirUtil.up(treePath));
     }
 
+    //adds a file to git
+    //filePath denotes path of file to store
     public static void addBlob (String filePath){
         addBlob(new File(filePath));
     }
@@ -143,9 +146,14 @@ public class Git {
         }
     }
 
-    // Adds all the blobs in a directory
+    // Adds all blobs in a directory
+    // dirPath is path of directory to add
     public static void addDir(String dirPath) throws NoSuchAlgorithmException {
-        File dir = new File(dirPath);
+        addDir(new File(dirPath));
+    }
+
+    // Adds all the blobs in a directory
+    public static void addDir(File dir) throws NoSuchAlgorithmException {
 
         if (!dir.exists() || !dir.isDirectory()) {
             throw new Error("This is not an existing directory");
@@ -158,6 +166,78 @@ public class Git {
                 addBlob(file.getPath());
             }
         }
+    }
+
+    //
+    public static void stage (String filePath){
+        File file = new File(filePath);
+        if (!file.exists())
+            throw new Error("File does not exist");
+        if (file.isDirectory()){
+            try { 
+                addDir(file); 
+            }
+            catch (NoSuchAlgorithmException e) { 
+                e.printStackTrace(); 
+            }
+        }
+        else if (file.isFile())
+            addBlob(file);
+    }
+
+    //creates a commit with no commitMessage
+    //records current system user and time automatically
+    public static String commit(){
+        return commit("", System.getProperty("user.name"));
+    }
+
+    //creates a commit with message commitMessage
+    //records current system user and time automatically
+    public static String commit(String commitMessage){ 
+        return commit(commitMessage, System.getProperty("user.name"));
+    }
+
+    public static String commit (String commitMesage, String authorName){
+        try {
+            Git.addBlob("./");
+            
+            File commitTemp = File.createTempFile("currentCommit", null);
+            BufferedWriter writer = new BufferedWriter(new FileWriter(commitTemp));
+
+            // commit current tree;
+            writer.append("tree: ");
+            writer.newLine();
+
+            // add parent to commit
+            String parentHash = Files.readString(new File("./git/HEAD").toPath());
+            writer.append("parent: " + parentHash);
+            writer.newLine();
+
+            // add author
+            writer.append("author: " + authorName);
+            writer.newLine();
+
+            // add date
+            writer.append("date: " + java.time.LocalDate.now());
+            writer.newLine();
+
+            // author message
+            writer.append("message: " + commitMesage);
+            writer.close();
+
+            BufferedWriter HEADwriter = new BufferedWriter(new FileWriter("./git/HEAD"));
+            HEADwriter.append(Sha.shaFile(commitTemp));
+            HEADwriter.close();
+            return Sha.shaFile(commitTemp);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    //Returns working directory to state at commit
+    public void checkout(String commitHash){
+        //implementation not programmed yet
     }
 
     // Creates repository

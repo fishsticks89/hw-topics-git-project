@@ -39,6 +39,8 @@ public class Tester {
         assertRepoCreated();
 
         // check hash
-        Git.addDir("basd");
+        Git.stage("basd");
+
+        Git.commit("BALLS");
     }
 }
