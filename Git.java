@@ -261,8 +261,8 @@ public class Git /**implements GitInterface*/{
             writer.close();
 
             //wipe the index 😈😈
-            index.delete();
-            index.createNewFile();
+            FileWriter indexWiper = new FileWriter(index, false);
+            indexWiper.close();
         }
         catch (IOException e){
             e.printStackTrace();

@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 
 public class Tester {
@@ -34,7 +35,11 @@ public class Tester {
 
         // leave if you want repository to reset at end of test
         Git.resetGit();
-
+        
+        File testing = new File("basd/test/ouch");
+        if (testing.exists())
+            testing.delete();
+        
         Git.initGit();
         assertRepoCreated();
 
@@ -42,5 +47,13 @@ public class Tester {
         Git.stage("basd");
 
         Git.commit("BALLS");
+
+        try {
+            testing.createNewFile();
+        }
+        catch (IOException e) {e.printStackTrace();}
+
+        Git.stage("basd/test/ouch");
+        Git.commit("Test", "Milo");
     }
 }
