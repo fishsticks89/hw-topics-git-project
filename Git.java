@@ -199,13 +199,11 @@ public class Git /**implements GitInterface*/{
 
     public static String commit (String commitMesage, String authorName){
         try {
-            Git.addBlob("./");
-            
             File commitTemp = File.createTempFile("currentCommit", null);
             BufferedWriter writer = new BufferedWriter(new FileWriter(commitTemp));
 
             // commit current tree;
-            writer.append("tree: ");
+            writer.append("tree: " + commitStagedFiles());
             writer.newLine();
 
             // add parent to commit
@@ -225,14 +223,51 @@ public class Git /**implements GitInterface*/{
             writer.append("message: " + commitMesage);
             writer.close();
 
+            String commitSHA = Sha.shaFile(commitTemp);
+            //copy temp commit into objects folder
+            File commitBlob = new File("./git/objects/" + commitSHA);
+            BufferedReader reader = new BufferedReader(new FileReader(commitTemp));
+            BufferedWriter commitWriter = new BufferedWriter(new FileWriter(commitBlob));
+            while (reader.ready()){
+                commitWriter.write(reader.readLine() + "\n");
+            }
+            reader.close();
+            commitWriter.close();
+            //write into head to track HEAD commit
             BufferedWriter HEADwriter = new BufferedWriter(new FileWriter("./git/HEAD"));
-            HEADwriter.append(Sha.shaFile(commitTemp));
+            HEADwriter.append(commitSHA);
             HEADwriter.close();
             return Sha.shaFile(commitTemp);
         } catch (IOException e) {
             e.printStackTrace();
         }
         return null;
+    }
+
+    //Creates a listing of all staged files in the index.
+    //Returns Sha of commited files listing
+    public static String commitStagedFiles (){
+        File index = new File("./git/index");
+        String filesSHA = Sha.shaFile(index);
+        File commitedFiles = new File("./git/objects/" + filesSHA);
+        
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(index));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(commitedFiles));
+            while (reader.ready()){
+                writer.write(reader.readLine() + "\n");
+            }
+            reader.close();
+            writer.close();
+
+            //wipe the index 😈😈
+            index.delete();
+            index.createNewFile();
+        }
+        catch (IOException e){
+            e.printStackTrace();
+        }
+        return filesSHA;
     }
 
     //Returns working directory to state at commit
