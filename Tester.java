@@ -1,5 +1,7 @@
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+
 import java.security.NoSuchAlgorithmException;
 
 public class Tester {
@@ -39,21 +41,38 @@ public class Tester {
         File testing = new File("basd/test/ouch");
         if (testing.exists())
             testing.delete();
+        File testingAgain = new File("basd/test/test1/test2/test3/test4/test5/test6/test7/test8/test9/deepFile.txt");
+        if (testingAgain.exists()){
+            File testingAgainSuperGreatGrandParent = new File("basd/test/test1");
+            DirUtil.deleteDir(testingAgainSuperGreatGrandParent);
+        }
         
-        Git.initGit();
+        Git repo = new Git();
         assertRepoCreated();
 
         // check hash
-        Git.stage("basd");
+        repo.stage("basd");
 
-        Git.commit("BALLS");
+        repo.commit("commited most testing files", "milomessinger");
 
         try {
             testing.createNewFile();
         }
         catch (IOException e) {e.printStackTrace();}
 
-        Git.stage("basd/test/ouch");
-        Git.commit("Test", "Milo");
+        repo.stage("basd/test/ouch");
+        repo.commit("added file in basd/test/ouch", "milomessinger");
+
+        File testingAgainParent = new File("basd/test/test1/test2/test3/test4/test5/test6/test7/test8/test9/");
+        testingAgainParent.mkdirs();
+        try {
+            testingAgain.createNewFile();
+            FileWriter writer = new FileWriter(testingAgain);
+            writer.append("the deep");
+            writer.close();
+        } catch (IOException e) {e.printStackTrace();}
+
+        repo.stage("basd/test/test1/test2/test3/test4/test5/test6/test7/test8/test9/deepFile.txt");
+        repo.commit("added DeepFile", "milomessinger");
     }
 }

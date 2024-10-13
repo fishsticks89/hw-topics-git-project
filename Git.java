@@ -11,11 +11,16 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.security.NoSuchAlgorithmException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.io.IOException;
 import util.Terminate;
 
-public class Git /**implements GitInterface*/{
-
+public class Git implements GitInterface{
+    //initializes a repository
+    public Git(){
+        initGit();
+    }
+    
     // Adds a Blob in `objects` to the `index` file
     private static void addBlobToIndex(String path, String sha) {
         var indexFile = new DirectoryFile("./git/index");
@@ -168,8 +173,14 @@ public class Git /**implements GitInterface*/{
         }
     }
 
-    //
-    public static void stage (String filePath){
+    //non-static stage reference
+    public void stage (String filePath){
+        stageStatic(filePath);
+    }
+
+    //static stage reference
+    //filePath is path of file to stage
+    public static void stageStatic (String filePath){
         File file = new File(filePath);
         if (!file.exists())
             throw new Error("File does not exist");
@@ -185,19 +196,23 @@ public class Git /**implements GitInterface*/{
             addBlob(file);
     }
 
+    public String commit (String commitMesage, String authorName){
+        return commitStatic (commitMesage, authorName);
+    }
+
     //creates a commit with no commitMessage
     //records current system user and time automatically
     public static String commit(){
-        return commit("", System.getProperty("user.name"));
+        return commitStatic("", System.getProperty("user.name"));
     }
 
     //creates a commit with message commitMessage
     //records current system user and time automatically
     public static String commit(String commitMessage){ 
-        return commit(commitMessage, System.getProperty("user.name"));
+        return commitStatic(commitMessage, System.getProperty("user.name"));
     }
 
-    public static String commit (String commitMesage, String authorName){
+    public static String commitStatic (String commitMesage, String authorName){
         try {
             File commitTemp = File.createTempFile("currentCommit", null);
             BufferedWriter writer = new BufferedWriter(new FileWriter(commitTemp));
@@ -226,13 +241,7 @@ public class Git /**implements GitInterface*/{
             String commitSHA = Sha.shaFile(commitTemp);
             //copy temp commit into objects folder
             File commitBlob = new File("./git/objects/" + commitSHA);
-            BufferedReader reader = new BufferedReader(new FileReader(commitTemp));
-            BufferedWriter commitWriter = new BufferedWriter(new FileWriter(commitBlob));
-            while (reader.ready()){
-                commitWriter.write(reader.readLine() + "\n");
-            }
-            reader.close();
-            commitWriter.close();
+            Files.copy(commitTemp.toPath(),commitBlob.toPath(), StandardCopyOption.REPLACE_EXISTING);
             //write into head to track HEAD commit
             BufferedWriter HEADwriter = new BufferedWriter(new FileWriter("./git/HEAD"));
             HEADwriter.append(commitSHA);
@@ -252,13 +261,7 @@ public class Git /**implements GitInterface*/{
         File commitedFiles = new File("./git/objects/" + filesSHA);
         
         try {
-            BufferedReader reader = new BufferedReader(new FileReader(index));
-            BufferedWriter writer = new BufferedWriter(new FileWriter(commitedFiles));
-            while (reader.ready()){
-                writer.write(reader.readLine() + "\n");
-            }
-            reader.close();
-            writer.close();
+            Files.copy(index.toPath(),commitedFiles.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
             //wipe the index 😈😈
             FileWriter indexWiper = new FileWriter(index, false);
@@ -279,11 +282,18 @@ public class Git /**implements GitInterface*/{
     public static void initGit() {
         File gitDir = new File("git");
         File objDir = new File("./git/objects/");
+        File readMe = new File("README.md");
         if (!gitDir.exists()) {
             gitDir.mkdir();
         }
         if (!objDir.exists()) {
             objDir.mkdir();
+        }
+        if (!readMe.exists()) {
+            try {
+                readMe.createNewFile();
+            }
+            catch (IOException e) {e.printStackTrace();}
         }
         getIndex();
         getHEAD();
