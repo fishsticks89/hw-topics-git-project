@@ -77,13 +77,13 @@ public class Tester {
         repo.stage("basd/test/test1/test2/test3/test4/test5/test6/test7/test8/test9/deepFile.txt");
         repo.commit("added DeepFile", "milomessinger");
 
-        // repo.checkout("");
+        repo.checkout("2bb749540cce350ba8cb5f5862b375025d84508c");
 
-        // try{
-        //     BufferedReader reader = new BufferedReader(new FileReader("git/HEAD"));
-        //     repo.checkout(reader.readLine());
-        //     reader.close();
-        // }
-        // catch (Exception e) {e.printStackTrace();}
+        try{
+            BufferedReader reader = new BufferedReader(new FileReader("git/HEAD"));
+            repo.checkout(reader.readLine());
+            reader.close();
+        }
+        catch (Exception e) {e.printStackTrace();}
     }
 }
