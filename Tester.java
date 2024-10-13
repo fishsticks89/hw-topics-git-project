@@ -1,4 +1,6 @@
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -74,5 +76,14 @@ public class Tester {
 
         repo.stage("basd/test/test1/test2/test3/test4/test5/test6/test7/test8/test9/deepFile.txt");
         repo.commit("added DeepFile", "milomessinger");
+
+        // repo.checkout("");
+
+        // try{
+        //     BufferedReader reader = new BufferedReader(new FileReader("git/HEAD"));
+        //     repo.checkout(reader.readLine());
+        //     reader.close();
+        // }
+        // catch (Exception e) {e.printStackTrace();}
     }
 }

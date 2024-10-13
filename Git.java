@@ -275,13 +275,65 @@ public class Git implements GitInterface{
 
     //Returns working directory to state at commit
     public void checkout(String commitHash){
+        File commit = new File("git/objects/" + commitHash);
+        if (!commit.exists())
+            throw new Error("Commit not found");
+        
         clearWorkingRepository();
+        try {
+            // recursively checks out all commits infront of this one
+            BufferedReader reader = new BufferedReader(new FileReader(commit));
+            String treeSha = reader.readLine().substring(6);
+            File tree = new File("git/objects/" + treeSha);
+            String nextCommitSha = reader.readLine().substring(8);
+            if (!nextCommitSha.equals(""))
+                checkout(nextCommitSha);
+            reader.close();
+
+
+            //i know this implementation is terrible but its late and when i wake up
+            //ill think of a better solution and then not implement it  :) sorry michael
+
+            //recreates file structure at this point (ONLY DIRS)
+            BufferedReader dirReader = new BufferedReader(new FileReader(tree));
+            while (dirReader.ready()){
+                String treeRead = dirReader.readLine();
+                boolean isFile = treeRead.substring(0,4).equals("blob");
+                String hash = treeRead.substring(5,45);
+                String filePath = treeRead.substring (46);
+                if(!isFile){
+                    File dir = new File(filePath);
+                    if(!dir.exists())
+                        dir.mkdirs();
+                }
+            }
+            dirReader.close();
+
+            BufferedReader fileReader = new BufferedReader(new FileReader(tree));
+            while (fileReader.ready()){
+                String treeRead = fileReader.readLine();
+                boolean isFile = treeRead.substring(0,4).equals("blob");
+                String hash = treeRead.substring(5,45);
+                String filePath = treeRead.substring (46);
+                if(isFile){
+                    File file = new File(filePath);
+                    file.createNewFile();
+                    File fileStuff = new File("git/objects/" + hash);
+                    Files.copy(fileStuff.toPath(),file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+            fileReader.close();
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     //cleans up working repository so commit can be checked out
     private void clearWorkingRepository(){
         try {
-            BufferedReader reader = new BufferedReader(new FileReader("HEAD"));
+            BufferedReader reader = new BufferedReader(new FileReader("git/HEAD"));
             clearWorkingRepository(new File("git/objects/" + reader.readLine()));
             reader.close();
         } catch (Exception e) {e.printStackTrace();}
