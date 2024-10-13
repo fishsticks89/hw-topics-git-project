@@ -275,7 +275,46 @@ public class Git implements GitInterface{
 
     //Returns working directory to state at commit
     public void checkout(String commitHash){
-        //implementation not programmed yet
+        clearWorkingRepository();
+    }
+
+    //cleans up working repository so commit can be checked out
+    private void clearWorkingRepository(){
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader("HEAD"));
+            clearWorkingRepository(new File("git/objects/" + reader.readLine()));
+            reader.close();
+        } catch (Exception e) {e.printStackTrace();}
+    }
+
+    //deletes all files in commitLog, and any commits behind it
+    private void clearWorkingRepository(File commitLog){
+        try{
+            //recursively clears all commits
+            BufferedReader reader = new BufferedReader(new FileReader(commitLog));
+            String treeSha = reader.readLine().substring(6);
+            File tree = new File("git/objects/" + treeSha);
+            String nextCommitSha = reader.readLine().substring(8);
+            if (!nextCommitSha.equals(""))
+                clearWorkingRepository(new File("git/objects/" + nextCommitSha));
+            reader.close();
+
+            //clears the trees
+            BufferedReader treeReader = new BufferedReader(new FileReader(tree));
+            while (treeReader.ready()){
+                File delFile = new File(treeReader.readLine().substring(46));
+                if (delFile.exists()){
+                    if(delFile.isDirectory())
+                        DirUtil.deleteDir(delFile);
+                    else
+                        delFile.delete();
+                }
+            }
+            treeReader.close();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // Creates repository
